@@ -2,6 +2,8 @@
 
 Documentation site for the BetterGov platform built with Fumadocs and Next.js.
 
+<!-- Test comment for CodeRabbit PR review -->
+
 ## About
 
 BetterGov.ph is a modern platform that centralizes Philippine government services and information,
