@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page';
-import { type TOCItemType } from 'fumadocs-core/server';
+import { type TOCItemType } from 'fumadocs-core/toc';
 import { Breadcrumb } from '@/components/navigation';
 import { cn } from '@/lib/utils';
 import { BookIcon, UserIcon, BetterGovLogo } from '@/components/icons';

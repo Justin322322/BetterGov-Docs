@@ -31,6 +31,10 @@ function cleanForMDX(content) {
   content = content.replace(/\[([^\]]+)\]\(\.\/\.env\.example\)/g, `[$1](${repoUrl}/.env.example)`);
   content = content.replace(/\[([^\]]+)\]\(\.\/docs\/Meilisearch\.md\)/g, `[$1](/docs/meilisearch)`);
   content = content.replace(/\[([^\]]+)\]\(docs\/Meilisearch\.md\)/g, `[$1](/docs/meilisearch)`);
+  content = content.replace(/\[([^\]]+)\]\(\.\.\/CONTRIBUTING\.md\)/g, `[$1](/docs/contributing)`);
+  content = content.replace(/\[([^\]]+)\]\(\.\/docs\/Meilisearch\.md(#.*?)?\)/g, `[$1](/docs/meilisearch$2)`);
+  content = content.replace(/\[([^\]]+)\]\(docs\/Meilisearch\.md(#.*?)?\)/g, `[$1](/docs/meilisearch$2)`);
+  content = content.replace(/https:\/\/ghrb\.waren\.build\/banner\?header=BetterGov\.ph&subheader=Building\+a\+better\+Philippines%27\+national\+website&bg=0051BA&color=fff&support=true/g, 'https://camo.githubusercontent.com/0cdaea8339ec113b16daf15a8e797c2e9cb9c80f8da2eb16536dd9cbf324a578/68747470733a2f2f676872622e776172656e2e6275696c642f62616e6e65723f6865616465723d426574746572476f762e7068267375626865616465723d4275696c64696e672b612b6265747465722b5068696c697070696e65732532372b6e6174696f6e616c2b776562736974652662673d30303531424126636f6c6f723d66666626737570706f72743d74727565');
   
   // Replace unsupported code block languages
   const languageMap = {
@@ -140,12 +144,14 @@ description: Testing guidelines and setup for BetterGov
  */
 async function fetchFromGitHub(filePath) {
   return new Promise((resolve, reject) => {
-    const url = `https://api.github.com/repos/${BETTERGOV_REPO}/contents/${filePath}?ref=${BETTERGOV_BRANCH}`;
+    const url = GITHUB_TOKEN
+      ? `https://api.github.com/repos/${BETTERGOV_REPO}/contents/${filePath}?ref=${BETTERGOV_BRANCH}`
+      : `https://raw.githubusercontent.com/${BETTERGOV_REPO}/${BETTERGOV_BRANCH}/${filePath}`;
     
     const options = {
       headers: {
         'User-Agent': 'BetterGov-Docs-Sync',
-        'Accept': 'application/vnd.github.v3+json'
+        'Accept': GITHUB_TOKEN ? 'application/vnd.github.v3+json' : 'text/plain'
       }
     };
 
@@ -162,16 +168,28 @@ async function fetchFromGitHub(filePath) {
       
       res.on('end', () => {
         try {
+          if (res.statusCode !== 200) {
+            const response = GITHUB_TOKEN ? JSON.parse(data) : {};
+            const message = response.message || `GitHub API returned HTTP ${res.statusCode}`;
+            reject(new Error(`${message} (${filePath})`));
+            return;
+          }
+
+          if (!GITHUB_TOKEN) {
+            resolve(data);
+            return;
+          }
+
           const response = JSON.parse(data);
           if (response.content) {
             // Decode base64 content
             const content = Buffer.from(response.content, 'base64').toString('utf-8');
             resolve(content);
           } else {
-            reject(new Error(`File not found: ${filePath}`));
+            reject(new Error(`GitHub API response did not include file content: ${filePath}`));
           }
         } catch (error) {
-          reject(error);
+          reject(new Error(`Invalid GitHub API response for ${filePath}: ${error.message}`));
         }
       });
     }).on('error', (error) => {
@@ -181,30 +199,11 @@ async function fetchFromGitHub(filePath) {
 }
 
 /**
- * Check if file exists in BetterGov repository
- */
-async function fileExists(filePath) {
-  try {
-    await fetchFromGitHub(filePath);
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-/**
  * Sync a single file
  */
 async function syncFile(fileConfig) {
   try {
     console.log(`Syncing ${fileConfig.source}...`);
-    
-    // Check if source file exists
-    const exists = await fileExists(fileConfig.source);
-    if (!exists) {
-      console.log(`WARNING: Source file ${fileConfig.source} not found, skipping...`);
-      return false;
-    }
 
     // Fetch content from BetterGov
     const content = await fetchFromGitHub(fileConfig.source);
@@ -239,7 +238,7 @@ async function syncDocumentation() {
   console.log('');
 
   let syncedCount = 0;
-  let totalFiles = FILES_TO_SYNC.length;
+  const totalFiles = FILES_TO_SYNC.length;
 
   for (const fileConfig of FILES_TO_SYNC) {
     const success = await syncFile(fileConfig);
@@ -261,7 +260,11 @@ async function syncDocumentation() {
     console.log('Documentation sync completed successfully!');
   } else {
     console.log('');
-    console.log('WARNING: No files were synced. Check the logs above for details.');
+    console.error('ERROR: No files were synced. Check the logs above for details.');
+  }
+
+  if (syncedCount !== totalFiles) {
+    process.exitCode = 1;
   }
 }
 

@@ -1,16 +1,9 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { FlatCompat } from '@eslint/eslintrc';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import nextVitals from 'eslint-config-next/core-web-vitals';
+import nextTypescript from 'eslint-config-next/typescript';
 
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...nextVitals,
+  ...nextTypescript,
   {
     ignores: [
       'node_modules/**',
@@ -26,30 +19,41 @@ const eslintConfig = [
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     rules: {
-      // Documentation-specific rules
       'no-unused-vars': 'warn',
       'prefer-const': 'error',
       'no-console': 'warn',
-      
-      // React/Next.js specific rules for documentation components
-      'react/no-unescaped-entities': 'off', // Allow quotes in documentation
-      'react/display-name': 'off', // Not needed for documentation components
-      '@next/next/no-img-element': 'off', // Allow img elements in MDX content
-      
-      // TypeScript rules
+      'react/no-unescaped-entities': 'off',
+      'react/display-name': 'off',
+      '@next/next/no-img-element': 'off',
       '@typescript-eslint/no-unused-vars': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn'
-    }
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
   },
   {
     files: ['scripts/**/*.js'],
-    env: {
-      node: true
+    languageOptions: {
+      globals: {
+        Buffer: 'readonly',
+        console: 'readonly',
+        module: 'readonly',
+        process: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+      },
     },
     rules: {
-      'no-console': 'off' // Allow console in build scripts
-    }
-  }
+      'no-console': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-unused-vars': 'off',
+    },
+  },
+  {
+    files: ['*.config.js'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 ];
 
 export default eslintConfig;

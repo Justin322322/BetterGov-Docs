@@ -1,4 +1,5 @@
 name: Sync Documentation from BetterGov
+
 on:
   schedule:
     # Run every 12 hours to check for updates
@@ -16,6 +17,9 @@ on:
 jobs:
   sync-docs:
     runs-on: ubuntu-latest
+    concurrency:
+      group: sync-docs-${{ github.ref }}
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -28,7 +32,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
@@ -40,6 +44,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Validate synced docs
+        run: npm run validate
+
       - name: Check for changes
         id: verify-changed-files
         run: |
@@ -48,6 +55,13 @@ jobs:
           else
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Fail if generated docs are stale
+        if: steps.verify-changed-files.outputs.changed == 'true' && (github.event_name == 'pull_request' || github.event_name == 'push')
+        run: |
+          git status --short
+          echo "Synced documentation is out of date. Run npm run sync-docs and commit the result."
+          exit 1
 
       - name: Commit and push changes
         if: steps.verify-changed-files.outputs.changed == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch')

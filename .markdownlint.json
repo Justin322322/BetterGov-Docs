@@ -10,14 +10,10 @@
   "MD007": {
     "indent": 2
   },
-  "MD013": {
-    "line_length": 100,
-    "code_blocks": false,
-    "tables": false
-  },
-  "MD024": {
-    "allow_different_nesting": true
-  },
+  "MD013": false,
+  "MD024": false,
+  "MD009": false,
+  "MD022": false,
   "MD025": {
     "front_matter_title": ""
   },
@@ -33,10 +29,22 @@
       "sup",
       "sub",
       "kbd",
-      "mark"
+      "mark",
+      "ol",
+      "ul",
+      "li",
+      "Tab"
     ]
   },
+  "MD031": false,
+  "MD032": false,
+  "MD034": false,
+  "MD036": false,
+  "MD037": false,
+  "MD040": false,
   "MD041": false,
+  "MD045": false,
+  "MD047": false,
   "MD046": {
     "style": "fenced"
   }
