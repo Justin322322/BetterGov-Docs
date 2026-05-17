@@ -34,7 +34,8 @@ function cleanForMDX(content) {
   content = content.replace(/\[([^\]]+)\]\(\.\.\/CONTRIBUTING\.md\)/g, `[$1](/docs/contributing)`);
   content = content.replace(/\[([^\]]+)\]\(\.\/docs\/Meilisearch\.md(#.*?)?\)/g, `[$1](/docs/meilisearch$2)`);
   content = content.replace(/\[([^\]]+)\]\(docs\/Meilisearch\.md(#.*?)?\)/g, `[$1](/docs/meilisearch$2)`);
-  content = content.replace(/https:\/\/ghrb\.waren\.build\/banner\?header=BetterGov\.ph&subheader=Building\+a\+better\+Philippines%27\+national\+website&bg=0051BA&color=fff&support=true/g, 'https://camo.githubusercontent.com/0cdaea8339ec113b16daf15a8e797c2e9cb9c80f8da2eb16536dd9cbf324a578/68747470733a2f2f676872622e776172656e2e6275696c642f62616e6e65723f6865616465723d426574746572476f762e7068267375626865616465723d4275696c64696e672b612b6265747465722b5068696c697070696e65732532372b6e6174696f6e616c2b776562736974652662673d30303531424126636f6c6f723d66666626737570706f72743d74727565');
+  const bannerUrl = 'https://camo.githubusercontent.com/0cdaea8339ec113b16daf15a8e797c2e9cb9c80f8da2eb16536dd9cbf324a578/68747470733a2f2f676872622e776172656e2e6275696c642f62616e6e65723f6865616465723d426574746572476f762e7068267375626865616465723d4275696c64696e672b612b6265747465722b5068696c697070696e65732532372b6e6174696f6e616c2b776562736974652662673d30303531424126636f6c6f723d66666626737570706f72743d74727565';
+  content = content.replace(/!\[GitHub Repo Banner\]\(https:\/\/ghrb\.waren\.build\/banner\?header=BetterGov\.ph&subheader=Building\+a\+better\+Philippines%27\+national\+website&bg=0051BA&color=fff&support=true\)/g, `<img src="${bannerUrl}" alt="GitHub Repo Banner" />`);
   
   // Replace unsupported code block languages
   const languageMap = {
