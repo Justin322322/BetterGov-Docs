@@ -4,7 +4,6 @@ import { notFound, redirect } from 'next/navigation';
 import { getMDXComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
-import type { TOCItemType } from 'fumadocs-core/toc';
 import {
   BasePageTemplate,
   GettingStartedTemplate,
@@ -14,56 +13,29 @@ import {
   type PageMetadata,
 } from '@/components/page-templates';
 
-function renderPageTemplate({
-  metadata,
-  slug,
-  toc,
-  children,
-}: {
-  metadata: PageMetadata;
-  slug?: string[];
-  toc?: TOCItemType[];
-  children: React.ReactNode;
-}) {
+/**
+ * Select appropriate template based on page category or path
+ */
+function getPageTemplate(category?: string, slug?: string[]) {
   const path = slug?.join('/') || '';
   
-  if (metadata.category === 'getting-started' || path.startsWith('getting-started')) {
-    return (
-      <GettingStartedTemplate metadata={metadata} toc={toc}>
-        {children}
-      </GettingStartedTemplate>
-    );
+  if (category === 'getting-started' || path.startsWith('getting-started')) {
+    return GettingStartedTemplate;
   }
   
-  if (metadata.category === 'api' || path.startsWith('developer/api')) {
-    return (
-      <ApiReferenceTemplate metadata={metadata} toc={toc}>
-        {children}
-      </ApiReferenceTemplate>
-    );
+  if (category === 'api' || path.startsWith('developer/api')) {
+    return ApiReferenceTemplate;
   }
   
-  if (metadata.category === 'user-guide' || path.startsWith('user')) {
-    return (
-      <UserGuideTemplate metadata={metadata} toc={toc}>
-        {children}
-      </UserGuideTemplate>
-    );
+  if (category === 'user-guide' || path.startsWith('user')) {
+    return UserGuideTemplate;
   }
   
-  if (metadata.category === 'contributing' || path.startsWith('contributing')) {
-    return (
-      <ContributingTemplate metadata={metadata} toc={toc}>
-        {children}
-      </ContributingTemplate>
-    );
+  if (category === 'contributing' || path.startsWith('contributing')) {
+    return ContributingTemplate;
   }
   
-  return (
-    <BasePageTemplate metadata={metadata} toc={toc}>
-      {children}
-    </BasePageTemplate>
-  );
+  return BasePageTemplate;
 }
 
 export default async function Page(props: { params: Promise<{ slug?: string[] }> }) {
@@ -94,19 +66,19 @@ export default async function Page(props: { params: Promise<{ slug?: string[] }>
     icon: page.data.icon,
   };
   
-  return renderPageTemplate({
-    metadata,
-    slug: params.slug,
-    toc: page.data.toc,
-    children: (
+  // Select appropriate template
+  const Template = getPageTemplate(metadata.category, params.slug);
+
+  return (
+    <Template metadata={metadata} toc={page.data.toc}>
       <MDX
         components={getMDXComponents({
           // this allows you to link to other pages with relative file paths
           a: createRelativeLink(source, page),
         })}
       />
-    ),
-  });
+    </Template>
+  );
 }
 
 export async function generateStaticParams() {

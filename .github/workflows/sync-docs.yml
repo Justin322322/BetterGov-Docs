@@ -1,5 +1,4 @@
 name: Sync Documentation from BetterGov
-
 on:
   schedule:
     # Run every 12 hours to check for updates
@@ -17,11 +16,11 @@ on:
 jobs:
   sync-docs:
     runs-on: ubuntu-latest
-    concurrency:
-      group: sync-docs-${{ github.ref }}
-      cancel-in-progress: false
     permissions:
       contents: write
+    concurrency:
+      group: sync-docs-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,7 +31,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
@@ -47,6 +46,9 @@ jobs:
       - name: Validate synced docs
         run: npm run validate
 
+      - name: Build docs
+        run: npm run build
+
       - name: Check for changes
         id: verify-changed-files
         run: |
@@ -56,13 +58,6 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Fail if generated docs are stale
-        if: steps.verify-changed-files.outputs.changed == 'true' && (github.event_name == 'pull_request' || github.event_name == 'push')
-        run: |
-          git status --short
-          echo "Synced documentation is out of date. Run npm run sync-docs and commit the result."
-          exit 1
-
       - name: Commit and push changes
         if: steps.verify-changed-files.outputs.changed == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch')
         run: |
@@ -71,3 +66,9 @@ jobs:
           git add .
           git commit -m "docs: sync documentation from BetterGov repository [skip ci]"
           git push
+
+      - name: Fail when generated docs are stale
+        if: steps.verify-changed-files.outputs.changed == 'true' && (github.event_name == 'pull_request' || github.event_name == 'push')
+        run: |
+          git diff --check
+          git diff --exit-code

@@ -39,7 +39,7 @@ async function generateSitemap() {
       const stats = fs.statSync(fullPath);
       
       // Convert file path to URL
-      const urlPath = filePath
+      let urlPath = filePath
         .replace(/\.(md|mdx)$/, '')
         .replace(/\/index$/, '')
         .replace(/\\/g, '/'); // Handle Windows paths

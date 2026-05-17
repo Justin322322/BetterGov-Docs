@@ -8,6 +8,13 @@ const https = require('https');
 const BETTERGOV_REPO = 'bettergovph/bettergov';
 const BETTERGOV_BRANCH = 'main';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const RAW_BASE_URL = `https://raw.githubusercontent.com/${BETTERGOV_REPO}/${BETTERGOV_BRANCH}`;
+const API_BASE_URL = `https://api.github.com/repos/${BETTERGOV_REPO}/contents`;
+const BANNER_MARKDOWN_PATTERN = /!\[GitHub Repo Banner\]\(https:\/\/ghrb\.waren\.build\/banner\?header=BetterGov\.ph&subheader=Building\+a\+better\+Philippines%27\+national\+website&bg=0051BA&color=fff&support=true\)/g;
+const BANNER_IMAGE = `<img
+  src="https://camo.githubusercontent.com/0cdaea8339ec113b16daf15a8e797c2e9cb9c80f8da2eb16536dd9cbf324a578/68747470733a2f2f676872622e776172656e2e6275696c642f62616e6e65723f6865616465723d426574746572476f762e7068267375626865616465723d4275696c64696e672b612b6265747465722b5068696c697070696e65732532372b6e6174696f6e616c2b776562736974652662673d30303531424126636f6c6f723d66666626737570706f72743d74727565"
+  alt="BetterGov.ph - Building a better Philippines' national website"
+/>`;
 
 /**
  * Clean content for MDX compatibility
@@ -15,6 +22,10 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 function cleanForMDX(content) {
   // Replace HTML comments with JSX comments
   content = content.replace(/<!--([\s\S]*?)-->/g, '{/*$1*/}');
+
+  // Keep the README banner on GitHub's camo URL. The original generator URL
+  // intermittently fails and Fumadocs tries to fetch markdown image dimensions.
+  content = content.replace(BANNER_MARKDOWN_PATTERN, BANNER_IMAGE);
   
   // Remove "back to top" links
   content = content.replace(/<p align="right">\(<a href="#readme-top">back to top<\/a>\)<\/p>\s*/g, '');
@@ -31,11 +42,6 @@ function cleanForMDX(content) {
   content = content.replace(/\[([^\]]+)\]\(\.\/\.env\.example\)/g, `[$1](${repoUrl}/.env.example)`);
   content = content.replace(/\[([^\]]+)\]\(\.\/docs\/Meilisearch\.md\)/g, `[$1](/docs/meilisearch)`);
   content = content.replace(/\[([^\]]+)\]\(docs\/Meilisearch\.md\)/g, `[$1](/docs/meilisearch)`);
-  content = content.replace(/\[([^\]]+)\]\(\.\.\/CONTRIBUTING\.md\)/g, `[$1](/docs/contributing)`);
-  content = content.replace(/\[([^\]]+)\]\(\.\/docs\/Meilisearch\.md(#.*?)?\)/g, `[$1](/docs/meilisearch$2)`);
-  content = content.replace(/\[([^\]]+)\]\(docs\/Meilisearch\.md(#.*?)?\)/g, `[$1](/docs/meilisearch$2)`);
-  const bannerUrl = 'https://camo.githubusercontent.com/0cdaea8339ec113b16daf15a8e797c2e9cb9c80f8da2eb16536dd9cbf324a578/68747470733a2f2f676872622e776172656e2e6275696c642f62616e6e65723f6865616465723d426574746572476f762e7068267375626865616465723d4275696c64696e672b612b6265747465722b5068696c697070696e65732532372b6e6174696f6e616c2b776562736974652662673d30303531424126636f6c6f723d66666626737570706f72743d74727565';
-  content = content.replace(/!\[GitHub Repo Banner\]\(https:\/\/ghrb\.waren\.build\/banner\?header=BetterGov\.ph&subheader=Building\+a\+better\+Philippines%27\+national\+website&bg=0051BA&color=fff&support=true\)/g, `<img src="${bannerUrl}" alt="GitHub Repo Banner" />`);
   
   // Replace unsupported code block languages
   const languageMap = {
@@ -141,22 +147,23 @@ description: Testing guidelines and setup for BetterGov
 ];
 
 /**
- * Fetch content from GitHub API
+ * Fetch content from GitHub.
  */
 async function fetchFromGitHub(filePath) {
   return new Promise((resolve, reject) => {
-    const url = GITHUB_TOKEN
-      ? `https://api.github.com/repos/${BETTERGOV_REPO}/contents/${filePath}?ref=${BETTERGOV_BRANCH}`
-      : `https://raw.githubusercontent.com/${BETTERGOV_REPO}/${BETTERGOV_BRANCH}/${filePath}`;
-    
+    const useApi = Boolean(GITHUB_TOKEN);
+    const url = useApi
+      ? `${API_BASE_URL}/${filePath}?ref=${BETTERGOV_BRANCH}`
+      : `${RAW_BASE_URL}/${filePath}`;
+
     const options = {
       headers: {
         'User-Agent': 'BetterGov-Docs-Sync',
-        'Accept': GITHUB_TOKEN ? 'application/vnd.github.v3+json' : 'text/plain'
+        'Accept': useApi ? 'application/vnd.github.v3+json' : 'text/plain'
       }
     };
 
-    if (GITHUB_TOKEN) {
+    if (useApi) {
       options.headers['Authorization'] = `token ${GITHUB_TOKEN}`;
     }
 
@@ -168,29 +175,27 @@ async function fetchFromGitHub(filePath) {
       });
       
       res.on('end', () => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error(`GitHub returned ${res.statusCode} for ${filePath}`));
+          return;
+        }
+
+        if (!useApi) {
+          resolve(data);
+          return;
+        }
+
         try {
-          if (res.statusCode !== 200) {
-            const response = GITHUB_TOKEN ? JSON.parse(data) : {};
-            const message = response.message || `GitHub API returned HTTP ${res.statusCode}`;
-            reject(new Error(`${message} (${filePath})`));
-            return;
-          }
-
-          if (!GITHUB_TOKEN) {
-            resolve(data);
-            return;
-          }
-
           const response = JSON.parse(data);
           if (response.content) {
             // Decode base64 content
             const content = Buffer.from(response.content, 'base64').toString('utf-8');
             resolve(content);
           } else {
-            reject(new Error(`GitHub API response did not include file content: ${filePath}`));
+            reject(new Error(`File not found: ${filePath}`));
           }
         } catch (error) {
-          reject(new Error(`Invalid GitHub API response for ${filePath}: ${error.message}`));
+          reject(error);
         }
       });
     }).on('error', (error) => {
@@ -239,7 +244,7 @@ async function syncDocumentation() {
   console.log('');
 
   let syncedCount = 0;
-  const totalFiles = FILES_TO_SYNC.length;
+  let totalFiles = FILES_TO_SYNC.length;
 
   for (const fileConfig of FILES_TO_SYNC) {
     const success = await syncFile(fileConfig);
@@ -261,7 +266,7 @@ async function syncDocumentation() {
     console.log('Documentation sync completed successfully!');
   } else {
     console.log('');
-    console.error('ERROR: No files were synced. Check the logs above for details.');
+    console.log('WARNING: No files were synced. Check the logs above for details.');
   }
 
   if (syncedCount !== totalFiles) {

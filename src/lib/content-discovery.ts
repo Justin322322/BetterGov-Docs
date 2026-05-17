@@ -57,7 +57,7 @@ export function getRelatedPages(currentPage: PageType, limit: number = 5): PageT
       
       // Shared tags increase score
       const pageTags = page.data.tags || [];
-      const sharedTags = currentTags.filter((tag: string) => pageTags.includes(tag));
+      const sharedTags = currentTags.filter(tag => pageTags.includes(tag));
       score += sharedTags.length * 2;
       
       // Same difficulty level gets bonus
@@ -105,7 +105,7 @@ export function searchPages(query: string): PageType[] {
   return source.getPages().filter(page => {
     const titleMatch = page.data.title.toLowerCase().includes(searchTerm);
     const descriptionMatch = page.data.description?.toLowerCase().includes(searchTerm);
-    const tagMatch = page.data.tags?.some((tag: string) => tag.toLowerCase().includes(searchTerm));
+    const tagMatch = page.data.tags?.some(tag => tag.toLowerCase().includes(searchTerm));
     const categoryMatch = page.data.category?.toLowerCase().includes(searchTerm);
     
     return titleMatch || descriptionMatch || tagMatch || categoryMatch;
@@ -174,7 +174,7 @@ export function getContentStats() {
     stats.byDifficulty[difficulty] = (stats.byDifficulty[difficulty] || 0) + 1;
     
     // Count by tags
-    page.data.tags?.forEach((tag: string) => {
+    page.data.tags?.forEach(tag => {
       stats.byTag[tag] = (stats.byTag[tag] || 0) + 1;
     });
   });

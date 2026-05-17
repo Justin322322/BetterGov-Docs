@@ -1,9 +1,16 @@
-import nextVitals from 'eslint-config-next/core-web-vitals';
-import nextTypescript from 'eslint-config-next/typescript';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { FlatCompat } from '@eslint/eslintrc';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
 
 const eslintConfig = [
-  ...nextVitals,
-  ...nextTypescript,
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
     ignores: [
       'node_modules/**',
@@ -19,41 +26,30 @@ const eslintConfig = [
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     rules: {
+      // Documentation-specific rules
       'no-unused-vars': 'warn',
       'prefer-const': 'error',
       'no-console': 'warn',
-      'react/no-unescaped-entities': 'off',
-      'react/display-name': 'off',
-      '@next/next/no-img-element': 'off',
+
+      // React/Next.js specific rules for documentation components
+      'react/no-unescaped-entities': 'off', // Allow quotes in documentation
+      'react/display-name': 'off', // Not needed for documentation components
+      '@next/next/no-img-element': 'off', // Allow img elements in MDX content
+
+      // TypeScript rules
       '@typescript-eslint/no-unused-vars': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
-    },
+      '@typescript-eslint/no-explicit-any': 'warn'
+    }
   },
   {
     files: ['scripts/**/*.js'],
-    languageOptions: {
-      globals: {
-        Buffer: 'readonly',
-        console: 'readonly',
-        module: 'readonly',
-        process: 'readonly',
-        require: 'readonly',
-        __dirname: 'readonly',
-      },
+    env: {
+      node: true
     },
     rules: {
-      'no-console': 'off',
-      '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      'no-unused-vars': 'off',
-    },
-  },
-  {
-    files: ['*.config.js'],
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-    },
-  },
+      'no-console': 'off' // Allow console in build scripts
+    }
+  }
 ];
 
 export default eslintConfig;

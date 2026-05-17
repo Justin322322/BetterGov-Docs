@@ -1,4 +1,4 @@
-import { docs } from '@/.source/server';
+import { docs } from '@/.source';
 import { type InferPageType, loader } from 'fumadocs-core/source';
 
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info

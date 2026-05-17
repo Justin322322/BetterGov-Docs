@@ -10,10 +10,10 @@
   "MD007": {
     "indent": 2
   },
-  "MD013": false,
-  "MD024": false,
   "MD009": false,
+  "MD013": false,
   "MD022": false,
+  "MD024": false,
   "MD025": {
     "front_matter_title": ""
   },
@@ -25,14 +25,14 @@
       "img",
       "div",
       "span",
+      "ol",
+      "ul",
+      "li",
       "a",
       "sup",
       "sub",
       "kbd",
       "mark",
-      "ol",
-      "ul",
-      "li",
       "Tab"
     ]
   },
@@ -43,9 +43,8 @@
   "MD037": false,
   "MD040": false,
   "MD041": false,
-  "MD045": false,
-  "MD047": false,
   "MD046": {
     "style": "fenced"
-  }
+  },
+  "MD047": false
 }

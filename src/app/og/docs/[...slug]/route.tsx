@@ -7,7 +7,7 @@ export const revalidate = false;
 
 export async function GET(
   _req: Request,
-  { params }: { params: Promise<{ slug: string[] }> },
+  { params }: RouteContext<'/og/docs/[...slug]'>,
 ) {
   const { slug } = await params;
   const page = source.getPage(slug.slice(0, -1));
@@ -18,7 +18,7 @@ export async function GET(
       <DefaultImage
         title={page.data.title}
         description={page.data.description}
-        site="BetterGovPH Documentation"
+        site="My App"
       />
     ),
     {
@@ -30,6 +30,7 @@ export async function GET(
 
 export function generateStaticParams() {
   return source.getPages().map((page) => ({
+    lang: page.locale,
     slug: getPageImage(page).segments,
   }));
 }
